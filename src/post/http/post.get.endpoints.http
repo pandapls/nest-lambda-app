@@ -1,0 +1,8 @@
+
+### 查询所有文章
+GET http://127.0.0.1:3001/posts
+
+
+
+### 根据文章id查询文章
+GET http://127.0.0.1:3001/posts/cmcbosfui00012vqdh6y014ct

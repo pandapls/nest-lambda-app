@@ -1,0 +1,10 @@
+### 创建文章
+POST http://127.0.0.1:3001/posts
+Content-Type: application/json
+
+{
+  "title": "我的第一篇文章",
+  "content": "内容部分",
+  "published": true,
+  "authorId": "cmcbfdd0400002vc7ewzwt3sg"
+}

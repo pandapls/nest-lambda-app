@@ -1,0 +1,8 @@
+# 创建user
+POST http://127.0.0.1:3001/users/
+Content-Type: application/json
+
+{
+  "email": "test1@qq.com",
+  "name": "nihao"
+}

@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [staging, test, production]
+    Description: Deployment environment
+
+  DatabaseParameterPrefix:
+    Type: String
+    Default: /nest-app/database
+    Description: SSM Parameter prefix for database configuration
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+    Runtime: nodejs20.x
+    Architectures: ['arm64']
+    Environment:
+      Variables:
+        # Prisma 配置 - 修正 Lambda 环境下的 Prisma 路径
+        PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1'
+        PRISMA_GENERATE_SKIP_DOWNLOAD: 'true'
+        PRISMA_CLI_QUERY_ENGINE_TYPE: 'library'
+        PRISMA_ENGINE_PROTOCOL: 'binary'
+        DEBUG: 'prisma:*' # 添加调试信息
+    EphemeralStorage:
+      Size: 512
+  Api:
+    OpenApiVersion: '2.0'
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
+      MaxAge: 600
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: api
+      BinaryMediaTypes:
+        - 'image/*'
+        - 'multipart/form-data'
+      Auth:
+        DefaultAuthorizer: NONE
+
+  NestjsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambda.handler
+      MemorySize: 3008
+      Timeout: 30
+      Policies:
+        - S3CrudPolicy:
+            BucketName: mina-community-assets
+        - VPCAccessPolicy: {}
+        # 添加SSM权限
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:DescribeParameters
+              Resource:
+                - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*'
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0dabb594f5cfcbf34 # Default security group
+        SubnetIds:
+          - subnet-0562dd209f2262814
+          - subnet-06785985c641ddb89
+      Events:
+        RootApiEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+            RestApiId: !Ref Api
+            Auth:
+              Authorizer: NONE
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId: !Ref Api
+            Auth:
+              Authorizer: NONE
+      AutoPublishAlias: live
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api'
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt NestjsFunction.Arn
