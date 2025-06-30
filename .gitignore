@@ -71,3 +71,4 @@ env*
 docker-compose.local*
 *.zip
 *.toml
+pgdata

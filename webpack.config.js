@@ -1,6 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
-
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
     entry: './src/lambda.ts',
     target: 'node',
@@ -31,6 +31,36 @@ module.exports = {
         libraryTarget: 'commonjs2',
     },
     plugins: [
+        new CopyWebpackPlugin({
+            patterns: [
+                // 复制整个 .prisma 目录
+                {
+                    from: path.resolve(__dirname, 'node_modules/.prisma'),
+                    to: path.resolve(__dirname, 'dist/node_modules/.prisma'),
+                    noErrorOnMissing: false, // 如果缺失就报错
+                    info: { minimized: true }, // 显示复制信息
+                },
+                // 复制整个 @prisma/client 目录
+                {
+                    from: path.resolve(__dirname, 'node_modules/@prisma/client'),
+                    to: path.resolve(__dirname, 'dist/node_modules/@prisma/client'),
+                    noErrorOnMissing: false,
+                    info: { minimized: true },
+                },
+                // 复制 package.json
+                {
+                    from: path.resolve(__dirname, 'package.json'),
+                    to: path.resolve(__dirname, 'dist/package.json'),
+                    noErrorOnMissing: false,
+                },
+                // 复制 schema.prisma （如果存在）
+                {
+                    from: path.resolve(__dirname, 'prisma/schema.prisma'),
+                    to: path.resolve(__dirname, 'dist/prisma/schema.prisma'),
+                    noErrorOnMissing: true, // schema 可以不存在
+                },
+            ],
+        }),
         // 忽略可选依赖
         new webpack.IgnorePlugin({
             resourceRegExp: /@nestjs\/websockets/,
@@ -54,6 +84,7 @@ module.exports = {
         }),
     ],
     externals: [
+        '@prisma/client',
     ],
     ignoreWarnings: [
         /Critical dependency: the request of a dependency is an expression/,

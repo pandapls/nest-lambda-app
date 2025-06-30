@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-
 @Injectable()
 export class DatabaseConfigService {
   private readonly logger = new Logger(DatabaseConfigService.name);
@@ -14,6 +13,7 @@ export class DatabaseConfigService {
   }
 
   public isLocalDevelopment(): boolean {
+    console.log(process.env.IS_LOCAL_DEV, 'IS_LOCAL_DEV');
     return (
       process.env.IS_LOCAL_DEV === 'true' ||
       process.env.NODE_ENV === 'development'
@@ -52,15 +52,10 @@ export class DatabaseConfigService {
   }
 
   // 生成Prisma数据库URL
-  async getPrismaDatabaseUrl(): Promise<string> {
+  getPrismaDatabaseUrl(): string {
     // 本地开发环境
     if (this.isLocalDevelopment()) {
-      const host =
-        process.env.IS_SAM_LOCAL === 'true'
-          ? 'host.docker.internal'
-          : 'localhost';
-
-      const localUrl = `postgresql://nest-protgres-local:123456@${host}:5433/postgres?sslmode=disable`;
+      const localUrl = process.env.DATABASE_URL!;
       this.logger.log('使用本地数据库 URL');
       return localUrl;
     }
@@ -71,24 +66,14 @@ export class DatabaseConfigService {
       return process.env.DATABASE_URL;
     }
 
-    // 生产环境：从SSM获取 - 固定路径以避免权限问题
-    try {
-      // 使用固定的参数名称
-      const writeUrlParam = '/nest-app/database-write-url';
-      const writeUrl = await this.getSSMParameter(writeUrlParam);
-
-      this.logger.log('成功从 SSM 获取数据库 URL');
-      return writeUrl;
-    } catch (error) {
-      this.logger.error('从 SSM 获取数据库 URL 失败:', error);
-      throw new Error(
-        `获取数据库 URL 失败: ${error instanceof Error ? error.message : '未知错误'}`,
-      );
-    }
+    // 生产环境
+    const writeUrl = process.env.DATABASE_URL_WRITE!;
+    this.logger.log('成功从 环境变量 获取数据库 URL');
+    return writeUrl;
   }
 
   // 生成只读数据库URL
-  async getPrismaReadDatabaseUrl(): Promise<string> {
+  getPrismaReadDatabaseUrl(): string {
     // 本地开发读写用同一个数据库
     if (this.isLocalDevelopment()) {
       return this.getPrismaDatabaseUrl();
@@ -100,27 +85,9 @@ export class DatabaseConfigService {
       return process.env.DATABASE_READ_URL;
     }
 
-    // 生产环境：从SSM获取 - 固定路径以避免权限问题
-    try {
-      // 使用固定的参数名称
-      const readUrlParam = '/nest-app/database-read-url';
-
-      try {
-        // 尝试获取只读 URL
-        const readUrl = await this.getSSMParameter(readUrlParam);
-        this.logger.log('成功从 SSM 获取只读数据库 URL');
-        return readUrl;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
-        // 如果没有只读 URL，回退到写 URL
-        this.logger.warn('没有找到只读 URL，回退到写 URL');
-        return this.getPrismaDatabaseUrl();
-      }
-    } catch (error) {
-      this.logger.error('从 SSM 获取只读数据库 URL 失败:', error);
-      // 回退到写数据库 URL
-      this.logger.warn('回退到写数据库 URL');
-      return this.getPrismaDatabaseUrl();
-    }
+    // 生产环境
+    const readUrl = process.env.DATABASE_URL_READ!;
+    this.logger.log('成功从 环境变量 获取只读数据库 URL');
+    return readUrl;
   }
 }

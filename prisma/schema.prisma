@@ -7,8 +7,7 @@
 generator client {
   provider      = "prisma-client-js"
   // 为 Lambda 运行时生成二进制文件
-  binaryTargets = ["native", "rhel-openssl-1.0.x", "linux-arm64-openssl-3.0.x"]
-  engineType    = "binary"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "linux-arm64-openssl-1.1.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {

@@ -11,7 +11,9 @@ capabilities = "CAPABILITY_IAM"
 disable_rollback = false
 image_repositories = []
 parameter_overrides = [
-    "Environment=\"production\""
+    "Environment=$ENVIRONMENT",
+    "DatabaseUrlWrite=$DATABASE_URL_WRITE",
+    "DatabaseUrlRead=$DATABASE_URL_READ"
 ]
 # 生产环境额外的安全和监控标签
 tags = [

@@ -8,7 +8,7 @@ export class PostService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createPostDto: CreatePostDto) {
-    const writeClient = await this.prisma.getWriteClient();
+    const writeClient = this.prisma.getWriteClient();
     const { title, content, published, authorId } = createPostDto;
     const res = await writeClient.post.create({
       data: {
@@ -29,7 +29,7 @@ export class PostService {
     orderBy?: Prisma.PostOrderByWithRelationInput;
   }): Promise<Post[]> {
     const { skip, take, where, orderBy } = params;
-    const readClient = await this.prisma.getReadClient();
+    const readClient = this.prisma.getReadClient();
 
     return readClient.post.findMany({
       skip,
@@ -42,7 +42,7 @@ export class PostService {
     });
   }
   async findOne(id: string) {
-    const readClient = await this.prisma.getReadClient();
+    const readClient = this.prisma.getReadClient();
     const res = readClient.post.findUnique({
       where: {
         id,

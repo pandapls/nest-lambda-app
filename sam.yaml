@@ -1,3 +1,5 @@
+# 更新你的 sam.yaml - 支持本地配置注入
+
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
@@ -8,10 +10,20 @@ Parameters:
     AllowedValues: [staging, test, production]
     Description: Deployment environment
 
-  DatabaseParameterPrefix:
+  # 新增：数据库URL参数（部署时注入）
+  DatabaseUrlWrite:
     Type: String
-    Default: /nest-app/database
-    Description: SSM Parameter prefix for database configuration
+    NoEcho: true  # 不在CloudFormation控制台显示
+    Description: Database connection URL (injected during deployment)
+    Default: ""   # 默认为空，部署时会被覆盖
+
+  # 新增：数据库URL参数（部署时注入）
+  DatabaseUrlRead:
+    Type: String
+    NoEcho: true  # 不在CloudFormation控制台显示
+    Description: Database connection URL (injected during deployment)
+    Default: ""   # 默认为空，部署时会被覆盖
+
 
 Globals:
   Function:
@@ -21,12 +33,12 @@ Globals:
     Architectures: ['arm64']
     Environment:
       Variables:
-        # Prisma 配置 - 修正 Lambda 环境下的 Prisma 路径
+        # Prisma 配置
         PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1'
         PRISMA_GENERATE_SKIP_DOWNLOAD: 'true'
         PRISMA_CLI_QUERY_ENGINE_TYPE: 'library'
         PRISMA_ENGINE_PROTOCOL: 'binary'
-        DEBUG: 'prisma:*' # 添加调试信息
+        DEBUG: 'prisma:*'
     EphemeralStorage:
       Size: 512
   Api:
@@ -38,6 +50,93 @@ Globals:
       MaxAge: 600
 
 Resources:
+  # ===== 网络配置 - 保持原有配置 =====
+
+  # 只创建一个新路由表用于子网A的外网访问
+  LambdaInternetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: vpc-0766b6a96681df539
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lambda-internet-access'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: 'Single subnet with NAT Gateway internet access'
+
+  # 为新路由表添加NAT Gateway路由
+  LambdaInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref LambdaInternetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: nat-043767b97be4afdca
+
+  # 只关联子网A到新路由表
+  LambdaSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: subnet-058eb6c14b8dd4dab
+      RouteTableId: !Ref LambdaInternetRouteTable
+
+  # ===== 安全组配置 =====
+
+  # Lambda专用安全组
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub 'Security group for ${AWS::StackName} Lambda function'
+      VpcId: vpc-0766b6a96681df539
+      SecurityGroupEgress:
+        # 允许HTTPS出站
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTPS outbound for internet services
+        # 允许HTTP出站
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP outbound for package managers
+        # 允许DNS查询
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+          Description: Allow DNS queries
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+          Description: Allow DNS queries over TCP
+        # 允许访问Aurora数据库
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          DestinationSecurityGroupId: sg-0dabb594f5cfcbf34
+          Description: Allow access to koa-bff-database Aurora cluster
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lambda-sg'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 为数据库安全组添加Lambda访问入站规则
+  DatabaseLambdaIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: sg-0dabb594f5cfcbf34
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      Description: !Sub 'Allow access from ${AWS::StackName} Lambda function to koa-bff-database'
+
+  # ===== API Gateway和Lambda函数 =====
+
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -50,30 +149,45 @@ Resources:
 
   NestjsFunction:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - LambdaSubnetARouteTableAssociation
+      - DatabaseLambdaIngressRule
     Properties:
       CodeUri: dist/
       Handler: lambda.handler
       MemorySize: 3008
-      Timeout: 30
+      Timeout: 120
       Policies:
         - S3CrudPolicy:
             BucketName: mina-community-assets
         - VPCAccessPolicy: {}
-        # 添加SSM权限
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-                - ssm:GetParameters
-                - ssm:DescribeParameters
-              Resource:
-                - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*'
+        # 移除SSM权限，因为不再需要
       VpcConfig:
         SecurityGroupIds:
-          - sg-0dabb594f5cfcbf34 # Default security group
+          - !Ref LambdaSecurityGroup
         SubnetIds:
-          - subnet-0562dd209f2262814
-          - subnet-06785985c641ddb89
+          - subnet-058eb6c14b8dd4dab  # us-east-1a (有外网访问)
+      Environment:
+        Variables:
+          # 环境特定变量
+          APP_ENV: !Ref Environment
+          
+          # 数据库URL - 来自部署时注入的参数
+          DATABASE_READ_URL: !Ref DatabaseUrlRead
+          DATABASE_URL_WRITE: !Ref DatabaseUrlWrite
+          
+          # 连接池优化
+          DATABASE_CONNECTION_LIMIT: '1'
+          DATABASE_POOL_TIMEOUT: '20'
+          DATABASE_STATEMENT_TIMEOUT: '30000'
+
+          # Node.js优化
+          NODE_ENV: 'production'
+          NODE_OPTIONS: '--max-old-space-size=2048'
+
+          # Lambda优化
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
       Events:
         RootApiEvent:
           Type: Api
@@ -97,6 +211,11 @@ Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api'
+
   FunctionArn:
     Description: Lambda Function ARN
     Value: !GetAtt NestjsFunction.Arn
+
+  NetworkArchitecture:
+    Description: Network architecture summary
+    Value: 'Lambda with direct database URL injection from local config'

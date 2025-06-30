@@ -6,7 +6,7 @@ import { User, Prisma } from '@prisma/client';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
   async createUser(params: { email: string; name: string }) {
-    const writeClient = await this.prisma.getWriteClient();
+    const writeClient = this.prisma.getWriteClient();
     const res = await writeClient.user.create({
       data: {
         email: params.email,
@@ -25,7 +25,7 @@ export class UserService {
     orderBy?: Prisma.UserOrderByWithRelationInput;
   }): Promise<User[]> {
     const { skip, take, where, orderBy } = params;
-    const readClient = await this.prisma.getReadClient();
+    const readClient = this.prisma.getReadClient();
 
     return readClient.user.findMany({
       skip,
@@ -39,7 +39,7 @@ export class UserService {
   }
 
   async findUserById(userId: string) {
-    const readClient = await this.prisma.getReadClient();
+    const readClient = this.prisma.getReadClient();
 
     return readClient.user.findUnique({
       where: {

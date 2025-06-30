@@ -69,13 +69,13 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // 获取写库连接字符串
-      this.writeUrl = await this.dbConfigService.getPrismaDatabaseUrl();
+      this.writeUrl = this.dbConfigService.getPrismaDatabaseUrl();
       if (!this.writeUrl) {
         throw new Error('Write database URL is empty or undefined');
       }
 
       // 获取读库连接字符串
-      this.readUrl = await this.dbConfigService.getPrismaReadDatabaseUrl();
+      this.readUrl = this.dbConfigService.getPrismaReadDatabaseUrl();
       if (!this.readUrl) {
         this.logger.warn(
           'Read database URL is empty, falling back to write database URL',
@@ -273,8 +273,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     while (retries < maxRetries) {
       try {
         // 获取新的连接 URL
-        this.writeUrl = await this.dbConfigService.getPrismaDatabaseUrl();
-        this.readUrl = await this.dbConfigService.getPrismaReadDatabaseUrl();
+        this.writeUrl = this.dbConfigService.getPrismaDatabaseUrl();
+        this.readUrl = this.dbConfigService.getPrismaReadDatabaseUrl();
 
         // 断开现有连接
         if (this.writeClient) {

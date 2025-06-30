@@ -33,10 +33,8 @@
     "db:studio": "npx prisma studio",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "npx prisma db seed",
-    "setup:ssm": "./scripts/setup-ssm.sh",
     "deploy:lambda": "./scripts/deploy.sh",
-    "deploy:local": "./scripts/setup-local-dev.sh",
-    "analyze:bundle": "npm run build:webpack -- --analyze"
+    "build:local:db": "docker compose -f docker-compose-local.yml up -d"
   },
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.835.0",
@@ -59,6 +57,7 @@
     "@fastify/static": "^8.2.0",
     "@fastify/view": "^11.1.0",
     "@nestjs/cli": "^11.0.0",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/platform-express": "^11.1.3",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
@@ -69,6 +68,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "copy-webpack-plugin": "^13.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
