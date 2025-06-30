@@ -71,13 +71,13 @@ Resources:
     Properties:
       RouteTableId: !Ref LambdaInternetRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: nat-043767b97be4afdca
+      NatGatewayId: nat-0eab70e334b6d8411
 
-  # 只关联子网A到新路由表
-  LambdaSubnetARouteTableAssociation:
+  # 只关联子网F到新路由表
+  LambdaSubnetFRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: subnet-058eb6c14b8dd4dab
+      SubnetId: subnet-03a76ffca990d2cca
       RouteTableId: !Ref LambdaInternetRouteTable
 
   # ===== 安全组配置 =====
@@ -150,7 +150,7 @@ Resources:
   NestjsFunction:
     Type: AWS::Serverless::Function
     DependsOn:
-      - LambdaSubnetARouteTableAssociation
+      - LambdaSubnetFRouteTableAssociation
       - DatabaseLambdaIngressRule
     Properties:
       CodeUri: dist/
@@ -161,12 +161,11 @@ Resources:
         - S3CrudPolicy:
             BucketName: mina-community-assets
         - VPCAccessPolicy: {}
-        # 移除SSM权限，因为不再需要
       VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
         SubnetIds:
-          - subnet-058eb6c14b8dd4dab  # us-east-1a (有外网访问)
+          - subnet-03a76ffca990d2cca  # us-east-1F (有外网访问)
       Environment:
         Variables:
           # 环境特定变量
