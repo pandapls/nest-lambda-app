@@ -1,6 +1,6 @@
 ### 获取所有user
-http://127.0.0.1:3001/users
+http://127.0.0.1:3001/api/users
 
 ### 根据userId 获取user
 
-http://127.0.0.1:3001/users/cmcbfdd0400002vc7ewzwt3sg
+http://127.0.0.1:3001/api/users/cmcbfdd0400002vc7ewzwt3sg

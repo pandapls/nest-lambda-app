@@ -1,5 +1,5 @@
 ### 创建文章
-POST http://127.0.0.1:3001/posts
+POST http://127.0.0.1:3001/api/posts
 Content-Type: application/json
 
 {

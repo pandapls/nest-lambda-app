@@ -5,6 +5,7 @@ import { UserModule } from './user/user.module';
 import { PostModule } from './post/post.module';
 import { PrismaModule } from './database/databse.module';
 import { ConfigModule } from '@nestjs/config';
+import { GithubModule } from './github/github.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -15,6 +16,7 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     UserModule,
     PostModule,
+    GithubModule,
   ],
   controllers: [AppController],
   providers: [AppService],

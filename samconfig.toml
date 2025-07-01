@@ -2,7 +2,7 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "nest-lambda-app-prod-v1"
+stack_name = "nest-lambda-app-prod-v4"
 resolve_s3 = true
 s3_prefix = "nest-lambda-app"
 region = "us-east-1"
@@ -13,12 +13,13 @@ image_repositories = []
 parameter_overrides = [
     "Environment=$ENVIRONMENT",
     "DatabaseUrlWrite=$DATABASE_URL_WRITE",
-    "DatabaseUrlRead=$DATABASE_URL_READ"
+    "DatabaseUrlRead=$DATABASE_URL_READ",
+    "GithubToken=$GITHUB_TOKEN"
 ]
 # 生产环境额外的安全和监控标签
 tags = [
     "Environment=\"production\"",
-    "Project=\"nest-lambda-app-prod-v1\"",
+    "Project=\"nest-lambda-app-prod-v4\"",
     "CostCenter=\"engineering\"",
     "Owner=\"backend-team\""
 ]

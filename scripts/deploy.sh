@@ -49,6 +49,7 @@ if [ -z "$DATABASE_URL_READ" ]; then
     exit 1
 fi
 
+
 if [ -z "$ENVIRONMENT" ]; then
     echo "⚠️  ENVIRONMENT 未配置，使用默认值: staging"
     ENVIRONMENT="production"
@@ -58,6 +59,7 @@ echo "✅ 配置验证通过："
 echo "   环境: $ENVIRONMENT"
 echo "   写库: $(echo $DATABASE_URL_WRITE | sed 's/:.*@/:***@/')"
 echo "   读库: $(echo $DATABASE_URL_READ | sed 's/:.*@/:***@/')"
+echo "   Github Token: $(echo $GITHUB_TOKEN)"
 
 # 4. SAM 部署
 echo "🚀 开始 SAM 部署..."
@@ -74,7 +76,9 @@ sam deploy \
     --parameter-overrides \
         Environment="$ENVIRONMENT" \
         DatabaseUrlWrite="$DATABASE_URL_WRITE" \
-        DatabaseUrlRead="$DATABASE_URL_READ"
+        DatabaseUrlRead="$DATABASE_URL_READ" \
+        GithubToken="$GITHUB_TOKEN"
+
 
 
 echo "✨ 部署完成!"

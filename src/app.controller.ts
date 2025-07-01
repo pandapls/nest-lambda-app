@@ -34,9 +34,7 @@ export class AppController {
 
       // 测试多个外网服务
       const testPromises = [
-        this.testEndpoint('GitHub API', 'https://api.github.com/zen'),
-        this.testEndpoint('NPM Registry', 'https://registry.npmjs.org'),
-        this.testEndpoint('HTTPBin', 'https://httpbin.org/ip'),
+        this.testEndpoint('GitHub API', 'https://api.github.com/'),
       ];
 
       const tests = await Promise.allSettled(testPromises);
