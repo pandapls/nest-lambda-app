@@ -6,6 +6,9 @@ import { PostModule } from './post/post.module';
 import { PrismaModule } from './database/databse.module';
 import { ConfigModule } from '@nestjs/config';
 import { GithubModule } from './github/github.module';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,6 +22,17 @@ import { GithubModule } from './github/github.module';
     GithubModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+    // 全局异常过滤器
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

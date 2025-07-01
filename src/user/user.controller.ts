@@ -3,6 +3,7 @@ import { UserService } from './user.service';
 import { User } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { GetUsersParamDto } from './dto/get-user.dto';
+import { ApiResponse } from '../common/dto/api-response.dto';
 
 @Controller('users')
 export class UserController {
@@ -26,10 +27,11 @@ export class UserController {
   }
 
   @Post()
-  async createUser(@Body() createUserDto: CreateUserDto): Promise<User> {
-    return this.userService.createUser({
+  async createUser(@Body() createUserDto: CreateUserDto) {
+    const user = await this.userService.createUser({
       email: createUserDto.email,
       name: createUserDto.name,
     });
+    return ApiResponse.success(user, '用户创建成功');
   }
 }
